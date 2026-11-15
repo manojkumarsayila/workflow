@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="TASKFLOW is a modern productivity app to plan tasks, track deadlines and finish what matters." />
+  <meta name="theme-color" content="#4F46E5" />
+  <title>TASKFLOW · Plan. Track. Finish.</title>
+
+  <!-- Favicon (inline SVG, no extra file needed) -->
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%234F46E5'/%3E%3Cstop offset='1' stop-color='%237C3AED'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='9' fill='url(%23g)'/%3E%3Cpath d='M9 16.5l4.5 4.5L23 11.5' stroke='white' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="style.css" />
+
+  <!-- Third-party libraries (CDN). Loaded with defer so they run before script.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js" defer></script>
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+
+<body>
+  <div class="app" id="app">
+    <!-- Mobile overlay behind the off-canvas sidebar -->
+    <div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
+
+    <!-- ============ SIDEBAR ============ -->
+    <aside class="sidebar" id="sidebar" aria-label="Sidebar">
+      <a class="brand" href="#dashboard" aria-label="TASKFLOW home">
+        <span class="brand-logo"><i data-lucide="check-check"></i></span>
+        <span class="brand-text">
+          <span class="brand-name">TASKFLOW</span>
+          <span class="brand-tag">Plan. Track. Finish.</span>
+        </span>
+      </a>
+
+      <nav class="nav" aria-label="Main navigation">
+        <span class="nav-label">Workspace</span>
+        <a class="nav-link" href="#dashboard" data-route="dashboard">
+          <i data-lucide="layout-dashboard"></i><span>Dashboard</span>
+        </a>
+        <a class="nav-link" href="#tasks" data-route="tasks">
+          <i data-lucide="list-checks"></i><span>My Tasks</span>
+          <span class="nav-badge" id="navPendingCount" aria-label="Pending tasks">0</span>
+        </a>
+        <a class="nav-link" href="#completed" data-route="completed">
+          <i data-lucide="circle-check"></i><span>Completed</span>
+        </a>
+        <a class="nav-link" href="#calendar" data-route="calendar">
+          <i data-lucide="calendar-days"></i><span>Calendar</span>
+        </a>
+
+        <span class="nav-label">Organize</span>
+        <a class="nav-link" href="#categories" data-route="categories">
+          <i data-lucide="tags"></i><span>Categories</span>
+        </a>
+        <a class="nav-link" href="#settings" data-route="settings">
+          <i data-lucide="settings"></i><span>Settings</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="today-card">
+          <div class="tp-head"><span>Today's progress</span><strong id="todayPct">0%</strong></div>
+          <div class="progress"><span id="todayBar" style="width:0%"></span></div>
+          <small id="todayText">Loading…</small>
+        </div>
+
+        <div class="user-card">
+          <div class="avatar" id="userAvatar">U</div>
+          <div class="user-meta">
+            <strong id="userName">User</strong>
+            <small>Personal workspace</small>
+          </div>
+          <a class="icon-btn" href="#settings" aria-label="Open settings"><i data-lucide="settings"></i></a>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ============ MAIN ============ -->
+    <div class="main">
+      <header class="topbar">
+        <button class="icon-btn menu-btn" id="menuBtn" type="button" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false">
+          <i data-lucide="menu"></i>
+        </button>
+
+        <div class="topbar-title">
+          <h1 id="pageTitle">Dashboard</h1>
+          <p id="pageSubtitle"></p>
+        </div>
+
+        <div class="topbar-actions">
+          <button class="icon-btn mobile-search-btn" id="globalSearchToggle" type="button" aria-label="Open search" aria-controls="globalSearch" aria-expanded="false">
+            <i data-lucide="search"></i>
+          </button>
+          <label class="search-box global">
+            <i data-lucide="search"></i>
+            <input type="search" id="globalSearch" placeholder="Search tasks   ( / )" autocomplete="off" aria-label="Search tasks" />
+          </label>
+          <button class="icon-btn" id="themeToggle" type="button" aria-label="Switch to dark mode">
+            <i data-lucide="moon"></i>
+          </button>
+          <button class="btn btn-primary" id="addTaskBtn" type="button">
+            <i data-lucide="plus"></i><span>New task</span>
+          </button>
+        </div>
+      </header>
+
+      <main class="content">
+
+        <!-- ============ DASHBOARD ============ -->
+        <section class="page" id="page-dashboard" data-page="dashboard" aria-label="Dashboard">
+          <div class="hero">
+            <div class="hero-text">
+              <p class="eyebrow" id="clockDate">&nbsp;</p>
+              <h2 id="welcomeTitle">Welcome back</h2>
+              <p id="welcomeSub">Loading your day…</p>
+            </div>
+            <div class="clock">
+              <span id="clockTime">--:--</span>
+              <small>Local time</small>
+            </div>
+          </div>
+
+          <div class="stats-grid">
+            <article class="card stat" data-tone="indigo" style="--i:0">
+              <div class="stat-icon"><i data-lucide="layers"></i></div>
+              <div class="stat-body">
+                <span class="stat-label">Total tasks</span>
+                <strong class="stat-value" id="statTotal">0</strong>
+                <small id="statTotalSub">—</small>
+              </div>
+            </article>
+            <article class="card stat" data-tone="emerald" style="--i:1">
+              <div class="stat-icon"><i data-lucide="circle-check"></i></div>
+              <div class="stat-body">
+                <span class="stat-label">Completed</span>
+                <strong class="stat-value" id="statCompleted">0</strong>
+                <small id="statCompletedSub">—</small>
+              </div>
+            </article>
+            <article class="card stat" data-tone="amber" style="--i:2">
+              <div class="stat-icon"><i data-lucide="clock"></i></div>
+              <div class="stat-body">
+                <span class="stat-label">Pending</span>
+                <strong class="stat-value" id="statPending">0</strong>
+                <small id="statPendingSub">—</small>
+              </div>
+            </article>
+            <article class="card stat" data-tone="rose" style="--i:3">
+              <div class="stat-icon"><i data-lucide="triangle-alert"></i></div>
+              <div class="stat-body">
+                <span class="stat-label">Overdue</span>
+                <strong class="stat-value" id="statOverdue">0</strong>
+                <small id="statOverdueSub">—</small>
+              </div>
+            </article>
+          </div>
+
+          <div class="dash-grid">
+            <article class="card">
+              <header class="card-header">
+                <div>
+                  <h3>Completion progress</h3>
+                  <p>Share of all tasks you have finished</p>
+                </div>
+              </header>
+              <div class="donut-wrap">
+                <canvas id="progressChart" role="img" aria-label="Task completion donut chart"></canvas>
+                <div class="donut-center">
+                  <strong id="progressPct">0%</strong>
+                  <span>complete</span>
+                </div>
+              </div>
+              <div class="legend">
+                <span class="legend-item"><span class="dot" style="--c:var(--accent)"></span>Completed <strong id="legendCompleted">0</strong></span>
+                <span class="legend-item"><span class="dot" style="--c:var(--accent-soft-strong)"></span>Pending <strong id="legendPending">0</strong></span>
+              </div>
+            </article>
+
+            <article class="card">
+              <header class="card-header">
+                <div>
+                  <h3>Productivity overview</h3>
+                  <p>Tasks completed over the last 7 days</p>
+                </div>
+              </header>
+              <div class="chart-box">
+                <canvas id="weekChart" role="img" aria-label="Tasks completed per day this week"></canvas>
+              </div>
+              <div class="metrics">
+                <div class="metric"><span>This week</span><strong id="metricWeek">0</strong></div>
+                <div class="metric"><span>Avg / day</span><strong id="metricAvg">0</strong></div>
+                <div class="metric"><span>Top category</span><strong id="metricTop">—</strong></div>
+              </div>
+            </article>
+          </div>
+
+          <div class="dash-grid two">
+            <article class="card">
+              <header class="card-header">
+                <div>
+                  <h3>Recent tasks</h3>
+                  <p>Your latest additions</p>
+                </div>
+                <a class="link-btn" href="#tasks">View all <i data-lucide="arrow-right"></i></a>
+              </header>
+              <div class="mini-list" id="recentList"></div>
+            </article>
+
+            <article class="card">
+              <header class="card-header">
+                <div>
+                  <h3>Upcoming deadlines</h3>
+                  <p>What needs to land next</p>
+                </div>
+                <a class="link-btn" href="#calendar">Calendar <i data-lucide="arrow-right"></i></a>
+              </header>
+              <div class="mini-list" id="upcomingList"></div>
+            </article>
+          </div>
+        </section>
+
+        <!-- ============ MY TASKS ============ -->
+        <section class="page" id="page-tasks" data-page="tasks" aria-label="My tasks">
+          <div class="toolbar card">
+            <label class="search-box">
+              <i data-lucide="search"></i>
+              <input type="search" id="tasksSearch" placeholder="Search by title, notes or category" autocomplete="off" aria-label="Search tasks" />
+            </label>
+            <div class="filters">
+              <select id="tasksStatus" aria-label="Filter by status">
+                <option value="all">All statuses</option>
+                <option value="pending">Pending</option>
+                <option value="overdue">Overdue</option>
+                <option value="completed">Completed</option>
+              </select>
+              <select id="tasksPriority" aria-label="Filter by priority"></select>
+              <select id="tasksCategory" aria-label="Filter by category"></select>
+              <select id="tasksSort" aria-label="Sort tasks"></select>
+              <button class="btn btn-ghost" type="button" data-action="reset-filters" data-panel="tasks">
+                <i data-lucide="rotate-ccw"></i>Reset
+              </button>
+            </div>
+          </div>
+          <p class="list-meta" id="tasksCount"></p>
+          <div class="task-list" id="tasksList"></div>
+        </section>
+
+        <!-- ============ COMPLETED ============ -->
+        <section class="page" id="page-completed" data-page="completed" aria-label="Completed tasks">
+          <div class="toolbar card">
+            <label class="search-box">
+              <i data-lucide="search"></i>
+              <input type="search" id="completedSearch" placeholder="Search completed tasks" autocomplete="off" aria-label="Search completed tasks" />
+            </label>
+            <div class="filters">
+              <select id="completedPriority" aria-label="Filter by priority"></select>
+              <select id="completedCategory" aria-label="Filter by category"></select>
+              <select id="completedSort" aria-label="Sort completed tasks"></select>
+              <button class="btn btn-ghost" type="button" data-action="reset-filters" data-panel="completed">
+                <i data-lucide="rotate-ccw"></i>Reset
+              </button>
+              <button class="btn btn-danger-soft" type="button" id="clearCompletedBtn">
+                <i data-lucide="trash-2"></i>Clear completed
+              </button>
+            </div>
+          </div>
+          <p class="list-meta" id="completedCount"></p>
+          <div class="task-list" id="completedList"></div>
+        </section>
+
+        <!-- ============ CALENDAR ============ -->
+        <section class="page" id="page-calendar" data-page="calendar" aria-label="Calendar">
+          <div class="card cal-card">
+            <div class="cal-header">
+              <div class="cal-nav">
+                <button class="icon-btn" type="button" id="calPrev" aria-label="Previous month"><i data-lucide="chevron-left"></i></button>
+                <h2 id="calTitle">Month</h2>
+                <button class="icon-btn" type="button" id="calNext" aria-label="Next month"><i data-lucide="chevron-right"></i></button>
+              </div>
+              <div class="cal-tools">
+                <span class="muted" id="calSummary"></span>
+                <button class="btn btn-ghost btn-sm" type="button" id="calToday">Today</button>
+              </div>
+            </div>
+            <div class="cal-weekdays" aria-hidden="true">
+              <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+            </div>
+            <div class="cal-grid" id="calGrid"></div>
+          </div>
+          <p class="hint muted">Tip: click any day to schedule a task on it, or click a task to edit it.</p>
+        </section>
+
+        <!-- ============ CATEGORIES ============ -->
+        <section class="page" id="page-categories" data-page="categories" aria-label="Categories">
+          <div class="page-actions">
+            <p class="muted">Group related tasks so you can see progress by area of life.</p>
+            <button class="btn btn-primary" type="button" data-action="new-category">
+              <i data-lucide="plus"></i>New category
+            </button>
+          </div>
+          <div class="category-grid" id="categoryGrid"></div>
+        </section>
+
+        <!-- ============ SETTINGS ============ -->
+        <section class="page" id="page-settings" data-page="settings" aria-label="Settings">
+          <div class="settings-grid">
+            <article class="card">
+              <header class="card-header">
+                <div>
+                  <h3>Profile</h3>
+                  <p>How TASKFLOW greets you and labels your workspace.</p>
+                </div>
+              </header>
+              <form id="profileForm" class="inline-form" novalidate>
+                <div class="field">
+                  <label for="settingsName">Display name</label>
+                  <input id="settingsName" maxlength="32" placeholder="Your name" autocomplete="name" />
+                </div>
+                <button class="btn btn-primary" type="submit"><i data-lucide="save"></i>Save</button>
+              </form>
+            </article>
+
+            <article class="card">
+              <header class="card-header">
+                <div>
+                  <h3>Appearance</h3>
+                  <p>Switch between light and dark interfaces.</p>
+                </div>
+              </header>
+              <div class="setting-row">
+                <div>
+                  <h4>Dark mode</h4>
+                  <p>Easier on the eyes in low light.</p>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="darkModeToggle" aria-label="Enable dark mode" />
+                  <span class="track"></span>
+                </label>
+              </div>
+            </article>
+
+            <article class="card">
+              <header class="card-header">
+                <div>
+                  <h3>Preferences</h3>
+                  <p>Defaults for new tasks and safety options.</p>
+                </div>
+              </header>
+              <div class="setting-row">
+                <div>
+                  <h4>Default priority</h4>
+                  <p>Pre-selected when you create a task.</p>
+                </div>
+                <select id="defaultPriority" aria-label="Default priority">
+                  <option value="high">High</option>
+                  <option value="medium">Medium</option>
+                  <option value="low">Low</option>
+                </select>
+              </div>
+              <div class="setting-row">
+                <div>
+                  <h4>Confirm before deleting</h4>
+                  <p>Ask for confirmation before removing tasks.</p>
+                </div>
+                <label class="switch">
+                  <input type="checkbox" id="confirmDeleteToggle" aria-label="Confirm before deleting" />
+                  <span class="track"></span>
+                </label>
+              </div>
+            </article>
+
+            <article class="card wide">
+              <header class="card-header">
+                <div>
+                  <h3>Data</h3>
+                  <p>Your data is stored in this browser. Export a backup to keep it safe or move it to another device.</p>
+                </div>
+              </header>
+              <div class="stack-actions">
+                <button class="btn btn-ghost" type="button" id="exportBtn"><i data-lucide="download"></i>Export backup</button>
+                <label class="btn btn-ghost" for="importFile"><i data-lucide="upload"></i>Import backup</label>
+                <input type="file" id="importFile" accept="application/json,.json" hidden />
+                <button class="btn btn-ghost" type="button" id="resetSamplesBtn"><i data-lucide="sparkles"></i>Restore sample tasks</button>
+                <button class="btn btn-danger-soft" type="button" id="clearAllBtn"><i data-lucide="trash-2"></i>Clear all data</button>
+              </div>
+              <p class="muted storage-info" id="storageInfo"></p>
+            </article>
+
+            <article class="card wide">
+              <header class="card-header">
+                <div>
+                  <h3>About TASKFLOW</h3>
+                  <p>Version <span id="appVersion">1.0.0</span> · Built with HTML, CSS and vanilla JavaScript. No account or server required.</p>
+                </div>
+              </header>
+            </article>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ============ TOASTS ============ -->
+  <div class="toast-container" id="toastContainer" aria-live="polite"></div>
+
+  <!-- ============ TASK MODAL ============ -->
+  <div class="modal-backdrop" id="taskModal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="taskModalTitle">
+      <header class="modal-header">
+        <h3 id="taskModalTitle">New task</h3>
+        <button class="icon-btn" type="button" data-close aria-label="Close"><i data-lucide="x"></i></button>
+      </header>
+
+      <form id="taskForm" novalidate>
+        <input type="hidden" id="taskId" />
+
+        <div class="field">
+          <label for="taskTitle">Title <span class="req">*</span></label>
+          <input id="taskTitle" maxlength="120" placeholder="e.g. Finish chapter 5 notes" autocomplete="off" data-autofocus />
+          <span class="error"></span>
+        </div>
+
+        <div class="field">
+          <label for="taskDesc">Description</label>
+          <textarea id="taskDesc" rows="3" maxlength="500" placeholder="Add context, links or steps (optional)"></textarea>
+        </div>
+
+        <div class="form-row">
+          <div class="field">
+            <label for="taskCategory">Category</label>
+            <select id="taskCategory"></select>
+          </div>
+          <div class="field">
+            <label for="taskDeadline">Deadline</label>
+            <input type="date" id="taskDeadline" />
+          </div>
+        </div>
+
+        <div class="field">
+          <span class="label" id="priorityLabel">Priority</span>
+          <div class="segmented" role="radiogroup" aria-labelledby="priorityLabel">
+            <label class="seg" data-p="low"><input type="radio" name="priority" value="low" /><span>Low</span></label>
+            <label class="seg" data-p="medium"><input type="radio" name="priority" value="medium" /><span>Medium</span></label>
+            <label class="seg" data-p="high"><input type="radio" name="priority" value="high" /><span>High</span></label>
+          </div>
+        </div>
+
+        <label class="check-row" id="completedRow">
+          <input type="checkbox" id="taskCompleted" />
+          <span>Mark as completed</span>
+        </label>
+
+        <footer class="modal-footer">
+          <button class="btn btn-ghost" type="button" data-close>Cancel</button>
+          <button class="btn btn-primary" type="submit" id="taskSubmit">Create task</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============ CATEGORY MODAL ============ -->
+  <div class="modal-backdrop" id="categoryModal" aria-hidden="true">
+    <div class="modal modal-narrow" role="dialog" aria-modal="true" aria-labelledby="categoryModalTitle">
+      <header class="modal-header">
+        <h3 id="categoryModalTitle">New category</h3>
+        <button class="icon-btn" type="button" data-close aria-label="Close"><i data-lucide="x"></i></button>
+      </header>
+
+      <form id="categoryForm" novalidate>
+        <input type="hidden" id="categoryId" />
+        <div class="field">
+          <label for="categoryName">Name <span class="req">*</span></label>
+          <input id="categoryName" maxlength="32" placeholder="e.g. Side projects" autocomplete="off" data-autofocus />
+          <span class="error"></span>
+        </div>
+        <div class="field">
+          <span class="label">Color</span>
+          <div class="swatches" id="swatches"></div>
+        </div>
+        <footer class="modal-footer">
+          <button class="btn btn-ghost" type="button" data-close>Cancel</button>
+          <button class="btn btn-primary" type="submit" id="categorySubmit">Create category</button>
+        </footer>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============ CONFIRM MODAL ============ -->
+  <div class="modal-backdrop" id="confirmModal" aria-hidden="true">
+    <div class="modal modal-confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirmTitle" aria-describedby="confirmMessage">
+      <div class="confirm-icon"><i data-lucide="trash-2"></i></div>
+      <h3 id="confirmTitle">Are you sure?</h3>
+      <p class="muted" id="confirmMessage"></p>
+      <footer class="modal-footer centered">
+        <button class="btn btn-ghost" type="button" data-close>Cancel</button>
+        <button class="btn btn-danger" type="button" id="confirmOk">Delete</button>
+      </footer>
+    </div>
+  </div>
+</body>
+</html>
